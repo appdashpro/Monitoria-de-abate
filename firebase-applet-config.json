@@ -1,11 +1,9 @@
 {
   "projectId": "nomadic-discovery-0ln7n",
   "appId": "1:231979020056:web:415b726b781481f5f7386d",
-  "apiKey": "AIzaSyC5G2pyuNCqwJdgV6ipfQ1flmXSEyTbWXw",
+  "apiKey": "",
   "authDomain": "nomadic-discovery-0ln7n.firebaseapp.com",
   "storageBucket": "nomadic-discovery-0ln7n.firebasestorage.app",
   "messagingSenderId": "231979020056",
-  "measurementId": "",
-  "oAuthClientId": "231979020056-qqm6k9bceavd70p3tvpl29hgru27sc1f.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "measurementId": "G-XZPQZYXRST"
 }

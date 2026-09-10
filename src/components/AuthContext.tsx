@@ -19,18 +19,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      if (user) {
-         try {
-            const token = await user.getIdToken();
-            await fetch('/api/auth/sync', {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            });
-         } catch(e) {
-            console.error('Failed to sync user', e);
-         }
-      }
       setLoading(false);
     });
 

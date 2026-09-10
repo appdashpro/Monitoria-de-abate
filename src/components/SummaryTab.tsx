@@ -3,19 +3,15 @@ import { useAppStore } from '../store';
 import { db } from '../db';
 import { AnimalEvaluation } from '../types';
 import { calculateAnimalStats, LOBE_WEIGHTS, getEPIndexClassification, getAPIndexClassification, getIPCategory, getIPInterpretation, getClassificationColor, cn } from '../utils';
-import { Download, RotateCcw, ClipboardList, Printer, Share2, Check, Info, X, Sparkles } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Download, RotateCcw, ClipboardList, Printer, Share2, Check, Info, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import Markdown from 'react-markdown';
 
 export function SummaryTab() {
   const { currentBatch, setCurrentBatch, setActiveTab } = useAppStore();
   const [evaluations, setEvaluations] = useState<AnimalEvaluation[]>([]);
   const [copied, setCopied] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState<string | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const METRICS_INFO = {
     ip: {
@@ -143,86 +139,6 @@ export function SummaryTab() {
   
   const lossGramsPerDay = (Number(avgAreaAffectedPiffer) * 3.74).toFixed(1);
   const lossFcrPercent = (Number(avgAreaAffectedPiffer) * 0.45).toFixed(2);
-
-  const handleAnalyze = async () => {
-    if (!currentBatch || evaluations.length === 0) return;
-    
-    setIsAnalyzing(true);
-    setAiAnalysis(null);
-    try {
-      const response = await fetch('/api/analyze-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          batchData: {
-            farm: currentBatch.farm,
-            batchId: currentBatch.batchId,
-            abattoir: currentBatch.abattoir,
-            totalAnimals: currentBatch.totalAnimals,
-            date: currentBatch.date,
-            avgIp,
-            avgAreaAffected: avgAreaAffectedPiffer,
-            avgScore,
-            avgSpes,
-            avgAppi,
-            prevPneumonia,
-            prevScar,
-            prevPleurisy,
-            lossGramsPerDay,
-            lossFcrPercent
-          },
-          evaluations: evaluations
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Falha ao analisar os dados');
-      }
-      
-      const data = await response.json();
-      setAiAnalysis(data.analysis);
-    } catch (error) {
-      console.error(error);
-      setAiAnalysis('Não foi possível gerar a análise no momento. Verifique a chave de API ou tente novamente mais tarde.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleExport = () => {
-    if (evaluations.length === 0) return;
-    
-    const data = evaluations.map(ev => {
-      const stats = calculateAnimalStats(ev);
-      return {
-        'ID': ev.animalIndex,
-        'Granja': currentBatch.farm,
-        'Lote': currentBatch.batchId,
-        'Data': new Date(currentBatch.date).toISOString().split('T')[0],
-        'Cranial_Dir': ev.rightCranial,
-        'Medio_Dir': ev.rightMiddle,
-        'Caudal_Dir': ev.rightCaudal,
-        'Acessorio': ev.accessory,
-        'Cranial_Esq': ev.leftCranial,
-        'Medio_Esq': ev.leftMiddle,
-        'Caudal_Esq': ev.leftCaudal,
-        'Cicatrizacao': ev.scarring ? 'Sim' : 'Não',
-        'Pleurisia_Cranial': ev.pleurisy ? 'Sim' : 'Não',
-        'SPES': ev.spes,
-        'Total_Score': stats.totalScore,
-        'Percent_Affected_Piffer': stats.areaAffectedPiffer.toFixed(2),
-        'Percent_Affected_Madec': stats.areaAffected.toFixed(2)
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Avaliações');
-    
-    XLSX.writeFile(workbook, `Lote_${currentBatch.batchId}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
 
   const handlePrintPDF = () => {
     if (evaluations.length === 0) return;
@@ -416,11 +332,11 @@ Gerado via *Monitoria de Abate PWA*`;
               )}
             </button>
             <button
-              onClick={handleExport}
-              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-2.5 font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-colors shadow-[0_0_15px_rgba(5,150,105,0.3)]"
+              onClick={handlePrintPDF}
+              className="flex-1 sm:flex-none bg-sky-600 hover:bg-sky-500 text-white rounded-xl px-4 py-2.5 font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-colors shadow-[0_0_15px_rgba(2,132,199,0.3)]"
             >
-              <Download className="w-4 h-4" />
-              EXCEL (.XLSX)
+              <Printer className="w-4 h-4" />
+              GERAR PDF
             </button>
             <button
               onClick={handleNewBatch}
@@ -539,46 +455,7 @@ Gerado via *Monitoria de Abate PWA*`;
             })}
           </div>
         </div>
-
-        <div className="bg-gradient-to-br from-indigo-950 to-slate-900 border border-indigo-900/50 rounded-2xl p-6 shadow-lg print:hidden">
-          <div className="flex justify-between items-start md:items-center mb-4 flex-col md:flex-row gap-4">
-            <div>
-              <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Análise Inteligente (IA)
-              </h3>
-              <p className="text-sm text-slate-400 mt-1">Gere insights e planos de ação baseados nos dados do lote.</p>
-            </div>
-            <button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors shrink-0"
-            >
-              {isAnalyzing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  ANALISANDO...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  GERAR PLANO DE AÇÃO
-                </>
-              )}
-            </button>
-          </div>
-          
-          {aiAnalysis && (
-            <div className="mt-6 bg-slate-950/50 border border-indigo-900/30 rounded-xl p-5 text-sm text-slate-300">
-              <div className="markdown-body text-slate-300 prose prose-invert prose-p:leading-relaxed prose-headings:text-indigo-300 prose-a:text-indigo-400 max-w-none prose-sm">
-                <Markdown>{aiAnalysis}</Markdown>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
-
-
 
       {/* PRINT LAYOUT SECTION (Hidden normally, visible in @media print) */}
       <div id="print-section" className="hidden">
