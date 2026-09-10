@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAppStore } from '../store';
 import { db } from '../db';
 import { AnimalEvaluation } from '../types';
-import { calculateAnimalStats, LOBE_WEIGHTS, getEPIndexClassification, getAPIndexClassification, getIPCategory, getIPInterpretation, getClassificationColor, cn } from '../utils';
+import { calculateAnimalStats, LOBE_WEIGHTS, getEPIndexClassification, getIPCategory, getIPInterpretation, getClassificationColor, cn } from '../utils';
 import { Download, RotateCcw, ClipboardList, Printer, Share2, Check, Info, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -26,18 +26,8 @@ export function SummaryTab() {
       description: 'Reflete a soma da gravidade das lesões de pneumonia micoplásmica. Cada um dos 7 lobos pulmonares recebe uma nota de 0 a 4. O índice médio do lote indica a severidade geral do desafio respiratório na granja.',
       clinical: 'Classificação média do lote: ≤ 1,49 (Leve); 1,50 a 2,40 (Intermediário); > 2,40 (Grave). Valores mais altos indicam quadros mais severos de infecção por Mycoplasma hyopneumoniae.'
     },
-    spes: {
-      title: 'Índice SPES Médio',
-      range: '0 a 4 pontos',
-      description: 'O Slaughterhouse Pleurisy Evaluation System (SPES) avalia a presença e extensão de aderências pleurais. Varia de 0 (ausência) a 4 (aderências pleurais bilaterais extensas).',
-      clinical: 'Avalia o histórico de pleurisia no rebanho, permitindo entender o grau crônico de problemas respiratórios.'
-    },
-    appi: {
-      title: 'APP Index (APPI)',
-      range: '0 a 4 pontos',
-      description: 'O índice APPI considera apenas as lesões SPES de notas 2, 3 e 4, que são tipicamente associadas ao Actinobacillus pleuropneumoniae (APP).',
-      clinical: 'Classificação do lote: < 0,30 (Leve); 0,30 a 0,60 (Intermediário); > 0,60 (Grave). Impacta severamente na conversão alimentar e ganho de peso do lote.'
-    },
+    
+    
     pneumonia: {
       title: 'Prevalência de Pneumonia',
       range: '0 a 100%',
@@ -92,8 +82,8 @@ export function SummaryTab() {
   let pneumoniaCount = 0;
   let scarCount = 0;
   let pleurisyCount = 0;
-  let sumSpes = 0;
-  let sumAppi = 0;
+  
+  
   let sumIpCategory = 0;
   let sumAreaAffectedMadec = 0;
   let sumAreaAffectedPiffer = 0;
@@ -111,8 +101,8 @@ export function SummaryTab() {
     if (category > 0) pneumoniaCount++;
     if (ev.scarring) scarCount++;
     if (ev.pleurisy) pleurisyCount++;
-    sumSpes += stats.spes;
-    sumAppi += stats.appi;
+    
+    
     sumIpCategory += category;
     ipCategoryCounts[category]++;
     sumAreaAffectedMadec += stats.areaAffected;
@@ -131,8 +121,8 @@ export function SummaryTab() {
   const prevPneumonia = totalEvaluated ? ((pneumoniaCount / totalEvaluated) * 100).toFixed(1) : '0';
   const prevScar = totalEvaluated ? ((scarCount / totalEvaluated) * 100).toFixed(1) : '0';
   const prevPleurisy = totalEvaluated ? ((pleurisyCount / totalEvaluated) * 100).toFixed(1) : '0';
-  const avgSpes = totalEvaluated ? (sumSpes / totalEvaluated).toFixed(2) : '0';
-  const avgAppi = totalEvaluated ? (sumAppi / totalEvaluated).toFixed(2) : '0';
+  
+  
   const avgIp = totalEvaluated ? (sumIpCategory / totalEvaluated).toFixed(2) : '0';
   const avgAreaAffectedMadec = totalEvaluated ? (sumAreaAffectedMadec / totalEvaluated).toFixed(2) : '0';
   const avgAreaAffectedPiffer = totalEvaluated ? (sumAreaAffectedPiffer / totalEvaluated).toFixed(2) : '0';
@@ -162,8 +152,8 @@ export function SummaryTab() {
         ['Área Afetada Média (Piffer & Brito)', `${avgAreaAffectedPiffer}%`],
         ['Índice Médio (MADEC)', avgScore],
         ['Área Afetada Média (MADEC)', `${avgAreaAffectedMadec}%`],
-        ['SPES Médio', avgSpes],
-        ['APP Index (APPI)', avgAppi],
+        
+        
         ['Prevalência Pneumonia', `${prevPneumonia}%`],
         ['Prevalência Cicatrizes', `${prevScar}%`],
         ['Prevalência Pleurisia', `${prevPleurisy}%`]
@@ -219,8 +209,6 @@ export function SummaryTab() {
 • Área Afetada Média (Piffer): ${avgAreaAffectedPiffer}%
 • Índice Médio (MADEC): ${avgScore}
 • Área Afetada Média (MADEC): ${avgAreaAffectedMadec}%
-• SPES Médio: ${avgSpes}
-• APP Index (APPI): ${avgAppi}
 • Prev. Pneumonia: ${prevPneumonia}%
 • Prev. Cicatrizes: ${prevScar}%
 • Prev. Pleurisia: ${prevPleurisy}%
@@ -396,18 +384,8 @@ Gerado via *Monitoria de Abate PWA*`;
               unit="%"
               subText="Baseado nos pesos Madec"
             />
-            <StatCard 
-              label="SPES Médio" 
-              value={avgSpes} 
-              infoKey="spes" 
-            />
-            <StatCard 
-              label="APP Index (APPI)" 
-              value={avgAppi} 
-              infoKey="appi" 
-              subText={getAPIndexClassification(Number(avgAppi))}
-              subTextColor={getClassificationColor(getAPIndexClassification(Number(avgAppi)))}
-            />
+            
+            
           </div>
         </div>
 
@@ -461,7 +439,7 @@ Gerado via *Monitoria de Abate PWA*`;
       <div id="print-section" className="hidden">
         <div className="border-b-4 border-slate-900 pb-4 mb-6">
           <h1 className="text-2xl font-black tracking-tight text-slate-900 uppercase">Relatório de Monitoria de Abate</h1>
-          <p className="text-xs font-mono uppercase tracking-widest text-slate-500">Madec Adaptado & SPES (Pleurisia) • Pulmão de Suínos</p>
+          <p className="text-xs font-mono uppercase tracking-widest text-slate-500">Madec Adaptado & Pleurisia • Pulmão de Suínos</p>
         </div>
         
         <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm mb-8 border border-slate-300 p-5 rounded-2xl bg-slate-50">
@@ -498,14 +476,8 @@ Gerado via *Monitoria de Abate PWA*`;
               <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Índice Médio (MADEC)</span>
               <span className="text-xl font-black text-slate-950 mt-1 block">{avgScore}</span>
             </div>
-            <div className="border border-slate-300 p-4 rounded-xl bg-slate-50">
-              <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Índice SPES Médio</span>
-              <span className="text-xl font-black text-slate-950 mt-1 block">{avgSpes}</span>
-            </div>
-            <div className="border border-slate-300 p-4 rounded-xl bg-slate-50">
-              <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">APP Index (APPI)</span>
-              <span className="text-xl font-black text-slate-950 mt-1 block">{avgAppi}</span>
-            </div>
+            
+            
             <div className="border border-slate-300 p-4 rounded-xl bg-slate-50">
               <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Prevalência Pneumonia</span>
               <span className="text-xl font-black text-slate-950 mt-1 block">{prevPneumonia}%</span>

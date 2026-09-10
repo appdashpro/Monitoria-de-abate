@@ -24,7 +24,6 @@ const FIELD_KEYS: (keyof AnimalEvaluation)[] = [
   'rightMiddle',
   'rightCaudal',
   'accessory',
-  'spes'
 ];
 
 export function CollectionTab() {
@@ -33,7 +32,6 @@ export function CollectionTab() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeFieldIndex, setActiveFieldIndex] = useState(0);
 
-  // Load existing evaluation if moving back
   useEffect(() => {
     setActiveFieldIndex(0);
     if (!currentBatch) return;
@@ -55,7 +53,6 @@ export function CollectionTab() {
           leftCranial: 0,
           leftMiddle: 0,
           leftCaudal: 0,
-          spes: 0,
           scarring: false,
           pleurisy: false,
         });
@@ -80,7 +77,6 @@ export function CollectionTab() {
       leftCranial: evaluation.leftCranial || 0,
       leftMiddle: evaluation.leftMiddle || 0,
       leftCaudal: evaluation.leftCaudal || 0,
-      spes: evaluation.spes || 0,
       scarring: evaluation.scarring || false,
       pleurisy: evaluation.pleurisy || false,
     };
@@ -109,7 +105,7 @@ export function CollectionTab() {
 
   const handleClear = () => {
     setEvaluation({
-      id: evaluation.id, // keep the ID if it exists
+      id: evaluation.id,
       rightCranial: 0,
       rightMiddle: 0,
       rightCaudal: 0,
@@ -117,10 +113,10 @@ export function CollectionTab() {
       leftCranial: 0,
       leftMiddle: 0,
       leftCaudal: 0,
-      spes: 0,
       scarring: false,
       pleurisy: false,
     });
+    setActiveFieldIndex(0);
   };
 
   const handlers = useSwipeable({
@@ -144,7 +140,6 @@ export function CollectionTab() {
         leftCranial: updatedEval.leftCranial || 0,
         leftMiddle: updatedEval.leftMiddle || 0,
         leftCaudal: updatedEval.leftCaudal || 0,
-        spes: updatedEval.spes || 0,
         scarring: updatedEval.scarring || false,
         pleurisy: updatedEval.pleurisy || false,
       };
@@ -153,8 +148,9 @@ export function CollectionTab() {
     } else {
       setEvaluation(updatedEval);
     }
+    
     const index = FIELD_KEYS.indexOf(key);
-    if (index !== -1 && index < FIELD_KEYS.length - 1) {
+    if (index !== -1 && index < FIELD_KEYS.length - 1 && typeof value === 'number') {
       setActiveFieldIndex(index + 1);
     }
   };
@@ -163,9 +159,7 @@ export function CollectionTab() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignorar se estiver digitando em um input
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-
       if (e.key >= '0' && e.key <= '4') {
         const val = parseInt(e.key, 10);
         const currentField = FIELD_KEYS[activeFieldIndex];
@@ -188,7 +182,6 @@ export function CollectionTab() {
         handleClear();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeFieldIndex, evaluation, currentAnimalIndex, isSaving, isLast]);
@@ -213,32 +206,29 @@ export function CollectionTab() {
 
   const stats = calculateAnimalStats(evaluation);
 
-  const ScoreButtonGroup = ({ label, valueKey, max = 4 }: { label: string, valueKey: keyof AnimalEvaluation, max?: number }) => {
-    const isActive = FIELD_KEYS[activeFieldIndex] === valueKey;
-    return (
-      <div className={cn("group mb-1.5 md:mb-6 flex md:block items-center justify-between gap-4 md:gap-0 p-1 md:p-0 rounded-lg md:rounded-none transition-colors", isActive ? "bg-slate-800/50 md:bg-transparent ring-1 ring-sky-500/50 md:ring-0" : "")}>
-        <label className={cn("text-[10px] md:text-xs uppercase block md:mb-2 font-bold w-1/3 md:w-auto text-left leading-tight transition-colors", isActive ? "text-sky-400" : "text-slate-500")}>
-          {label}
-        </label>
-        <div className="flex gap-1 md:gap-2 flex-1 justify-end">
-          {Array.from({ length: max + 1 }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => updateValue(valueKey, i)}
-              className={cn(
-                "flex-1 max-w-10 h-8 md:max-w-none md:h-auto md:aspect-square rounded-md md:rounded-lg font-bold text-sm md:text-lg transition-colors border",
-                evaluation[valueKey] === i
-                  ? "bg-sky-500 border-sky-400 text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]"
-                  : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500"
-              )}
-            >
-              {i}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
+  const handleLobeClick = (id: string) => {
+    setActiveFieldIndex(FIELD_KEYS.indexOf(id as keyof AnimalEvaluation));
   };
+
+  const LungLobe = ({ id, label, value, isActive, onClick, className }: any) => (
+    <button
+      onClick={() => onClick(id)}
+      className={cn(
+        "relative flex flex-col items-center justify-center border-2 transition-all overflow-hidden cursor-pointer",
+        isActive ? "border-sky-500 bg-sky-900/40 shadow-[0_0_20px_rgba(14,165,233,0.4)] z-10 scale-[1.03]" : "border-slate-800 bg-slate-900 hover:border-slate-700",
+        className
+      )}
+    >
+      <span className={cn(
+        "text-[9px] md:text-xs font-bold uppercase tracking-tighter absolute top-2 text-center w-full px-1 leading-tight",
+        isActive ? "text-sky-300" : "text-slate-500"
+      )}>{label}</span>
+      <span className={cn(
+        "text-2xl md:text-4xl font-black mt-4",
+        value !== undefined && value !== null ? "text-white" : "text-slate-800"
+      )}>{value !== undefined && value !== null ? value : '-'}</span>
+    </button>
+  );
 
   return (
     <div {...handlers} className="flex-1 flex flex-col md:flex-row h-full bg-slate-950 overflow-hidden md:p-6 gap-0 md:gap-6">
@@ -290,10 +280,6 @@ export function CollectionTab() {
                 <span className="font-mono text-emerald-400 text-lg font-bold">{stats.areaAffected.toFixed(1)}%</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-slate-800">
-                <span className="text-slate-400 text-sm">Índice SPES</span>
-                <span className="font-mono text-sky-400 text-lg font-bold">{stats.spes}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-800">
                 <span className="text-slate-400 text-sm">Soma Pontos</span>
                 <span className="font-mono text-white text-lg font-bold">{stats.totalScore}</span>
               </div>
@@ -323,77 +309,162 @@ export function CollectionTab() {
         </div>
       </aside>
 
-      {/* Center Panel: Lobos Evaluation */}
+      {/* Center Panel: Lobes Evaluation */}
       <section className="flex-1 bg-slate-950 md:bg-slate-900 md:rounded-2xl md:border border-slate-800 flex flex-col relative overflow-hidden md:shadow-lg">
+        
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-2 md:p-8 pb-20 md:pb-8">
-          <div className="md:grid md:grid-cols-2 gap-x-12">
-            <div className="space-y-0 md:space-y-2">
-              {LOBES.slice(0, 3).map((lobe) => (
-                <div key={lobe.id}>
-                  <ScoreButtonGroup label={lobe.label} valueKey={lobe.id as keyof AnimalEvaluation} />
-                </div>
-              ))}
-            </div>
-            <div className="space-y-0 md:space-y-2">
-              {LOBES.slice(3, 7).map((lobe) => (
-                <div key={lobe.id}>
-                  <ScoreButtonGroup label={lobe.label} valueKey={lobe.id as keyof AnimalEvaluation} />
-                </div>
-              ))}
-              
-              <ScoreButtonGroup label="SPES (Pleurisia)" valueKey="spes" />
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-72 md:pb-8 flex flex-col items-center">
 
-              <div className="grid grid-cols-2 gap-2 md:gap-4 mt-1 md:mt-2">
-                <button
-                  onClick={() => updateValue('scarring', !evaluation.scarring)}
-                  className={cn(
-                    "p-2 md:p-4 rounded-lg md:rounded-xl font-bold flex flex-row md:flex-col items-center justify-center gap-1 md:gap-2 border transition-colors text-[10px] md:text-base",
-                    evaluation.scarring 
-                      ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]" 
-                      : "bg-slate-950 md:bg-slate-800 text-slate-500 border-slate-800 md:border-slate-700"
-                  )}
-                >
-                  <Check className={cn("w-3 h-3 md:w-6 md:h-6 shrink-0", evaluation.scarring ? "opacity-100" : "opacity-20")} />
-                  Cicatriz
-                </button>
-                <button
-                  onClick={() => updateValue('pleurisy', !evaluation.pleurisy)}
-                  className={cn(
-                    "p-2 md:p-4 rounded-lg md:rounded-xl font-bold flex flex-row md:flex-col items-center justify-center gap-1 md:gap-2 border transition-colors text-[10px] md:text-base leading-tight",
-                    evaluation.pleurisy 
-                      ? "bg-red-500 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]" 
-                      : "bg-slate-950 md:bg-slate-800 text-slate-500 border-slate-800 md:border-slate-700"
-                  )}
-                >
-                  <Check className={cn("w-3 h-3 md:w-6 md:h-6 shrink-0", evaluation.pleurisy ? "opacity-100" : "opacity-20")} />
-                  Pleurisia CV
-                </button>
+          {/* Lungs Diagram */}
+          <div className="max-w-sm mx-auto w-full relative mb-4">
+            {/* Trachea */}
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-10 bg-slate-800 rounded-full z-0 opacity-40 border border-slate-700"></div>
+
+            <div className="flex gap-2 md:gap-4 h-[35vh] min-h-[260px] max-h-[380px] relative z-10 pt-2">
+              {/* Left Lung */}
+              <div className="flex-1 flex flex-col gap-2 md:gap-3">
+                <LungLobe id="leftCranial" label="Cran. Esq" value={evaluation.leftCranial} isActive={FIELD_KEYS[activeFieldIndex] === 'leftCranial'} onClick={handleLobeClick} className="flex-[0.3] rounded-t-full rounded-bl-3xl rounded-br-md" />
+                <LungLobe id="leftMiddle" label="Méd. Esq" value={evaluation.leftMiddle} isActive={FIELD_KEYS[activeFieldIndex] === 'leftMiddle'} onClick={handleLobeClick} className="flex-[0.25] rounded-l-2xl rounded-r-md" />
+                <LungLobe id="leftCaudal" label="Caudal Esq" value={evaluation.leftCaudal} isActive={FIELD_KEYS[activeFieldIndex] === 'leftCaudal'} onClick={handleLobeClick} className="flex-[0.45] rounded-b-full rounded-tl-md rounded-tr-md" />
+              </div>
+
+              {/* Right Lung */}
+              <div className="flex-1 flex flex-col gap-2 md:gap-3">
+                <LungLobe id="rightCranial" label="Cran. Dir" value={evaluation.rightCranial} isActive={FIELD_KEYS[activeFieldIndex] === 'rightCranial'} onClick={handleLobeClick} className="flex-[0.3] rounded-t-full rounded-br-3xl rounded-bl-md" />
+                <LungLobe id="rightMiddle" label="Méd. Dir" value={evaluation.rightMiddle} isActive={FIELD_KEYS[activeFieldIndex] === 'rightMiddle'} onClick={handleLobeClick} className="flex-[0.25] rounded-r-2xl rounded-l-md" />
+                <div className="flex-[0.45] flex gap-2 md:gap-3">
+                  <LungLobe id="accessory" label="Acessório" value={evaluation.accessory} isActive={FIELD_KEYS[activeFieldIndex] === 'accessory'} onClick={handleLobeClick} className="flex-[0.4] rounded-b-3xl rounded-t-md" />
+                  <LungLobe id="rightCaudal" label="Caud. Dir" value={evaluation.rightCaudal} isActive={FIELD_KEYS[activeFieldIndex] === 'rightCaudal'} onClick={handleLobeClick} className="flex-[0.6] rounded-b-full rounded-tl-md rounded-tr-md" />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Desktop Only Keypad & Flags */}
+          <div className="hidden md:flex w-full max-w-sm flex-col gap-4 mt-6">
+            <div className="flex gap-2">
+              {[0, 1, 2, 3, 4].map(val => (
+                <button
+                  key={val}
+                  onClick={() => {
+                    const currentField = FIELD_KEYS[activeFieldIndex];
+                    if (currentField) updateValue(currentField, val);
+                  }}
+                  className="flex-1 h-14 bg-slate-800 text-white rounded-xl text-xl font-black border border-slate-700 hover:bg-slate-700 active:bg-sky-600 transition-colors shadow-lg"
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex gap-4">
+              <button
+                onClick={() => updateValue('scarring', !evaluation.scarring)}
+                className={cn(
+                  "flex-1 h-14 rounded-lg font-bold flex items-center justify-center gap-2 border transition-colors text-sm",
+                  evaluation.scarring 
+                    ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]" 
+                    : "bg-slate-950 text-slate-500 border-slate-800 hover:bg-slate-900"
+                )}
+              >
+                <Check className={cn("w-5 h-5", evaluation.scarring ? "opacity-100" : "opacity-20")} />
+                Cicatriz
+              </button>
+              <button
+                onClick={() => updateValue('pleurisy', !evaluation.pleurisy)}
+                className={cn(
+                  "flex-1 h-14 rounded-lg font-bold flex items-center justify-center gap-2 border transition-colors text-sm",
+                  evaluation.pleurisy 
+                    ? "bg-red-500 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]" 
+                    : "bg-slate-950 text-slate-500 border-slate-800 hover:bg-slate-900"
+                )}
+              >
+                <Check className={cn("w-5 h-5", evaluation.pleurisy ? "opacity-100" : "opacity-20")} />
+                Pleurisia CV
+              </button>
+            </div>
+          </div>
+
         </div>
       </section>
 
-      {/* Mobile Footer Actions */}
-      <div className="md:hidden absolute bottom-0 left-0 right-0 p-3 bg-slate-950/80 backdrop-blur-md border-t border-slate-800 flex gap-2">
-        <button
-          onClick={handleClear}
-          className="p-3 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center shrink-0"
-        >
-          <RotateCcw className="w-5 h-5" />
-        </button>
-        <button
-          onClick={handleNext}
-          className={cn(
-            "flex-1 p-3 rounded-lg font-bold uppercase tracking-wider flex items-center justify-center transition-colors shadow-lg text-sm",
-            isLast 
-              ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(5,150,105,0.3)]" 
-              : "bg-sky-600 hover:bg-sky-500 text-white shadow-[0_0_15px_rgba(2,132,199,0.3)]"
-          )}
-        >
-          {isLast ? "FINALIZAR COLETA" : "PRÓXIMO ANIMAL"}
-        </button>
+      {/* Mobile One-Handed Keypad (Hidden on Desktop) */}
+      <div className="md:hidden absolute bottom-0 left-0 right-0 p-3 bg-slate-900 border-t border-slate-800 flex flex-col gap-3 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-20">
+        
+        {/* Active Field Indicator */}
+        <div className="flex justify-between items-center px-1">
+          <span className="text-sky-400 font-bold text-sm uppercase tracking-wider">
+            Avaliando: {LOBES.find(l => l.id === FIELD_KEYS[activeFieldIndex])?.label || ''}
+          </span>
+          <span className="text-slate-500 text-xs font-mono">
+            {activeFieldIndex + 1} / {FIELD_KEYS.length}
+          </span>
+        </div>
+
+        {/* Score Keypad */}
+        <div className="flex gap-2">
+          {[0, 1, 2, 3, 4].map(val => (
+            <button
+              key={val}
+              onClick={() => {
+                const currentField = FIELD_KEYS[activeFieldIndex];
+                if (currentField) updateValue(currentField, val);
+              }}
+              className="flex-1 h-14 bg-slate-800 text-white rounded-xl text-2xl font-black border border-slate-700 active:bg-sky-600 transition-colors shadow-lg"
+            >
+              {val}
+            </button>
+          ))}
+        </div>
+        
+        {/* Boolean Flags & Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => updateValue('scarring', !evaluation.scarring)}
+            className={cn(
+              "flex-1 h-12 rounded-lg font-bold flex items-center justify-center gap-2 border transition-colors text-sm",
+              evaluation.scarring 
+                ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]" 
+                : "bg-slate-950 text-slate-500 border-slate-800"
+            )}
+          >
+            <Check className={cn("w-4 h-4", evaluation.scarring ? "opacity-100" : "opacity-20")} />
+            Cicatriz
+          </button>
+          <button
+            onClick={() => updateValue('pleurisy', !evaluation.pleurisy)}
+            className={cn(
+              "flex-1 h-12 rounded-lg font-bold flex items-center justify-center gap-2 border transition-colors text-sm",
+              evaluation.pleurisy 
+                ? "bg-red-500 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)]" 
+                : "bg-slate-950 text-slate-500 border-slate-800"
+            )}
+          >
+            <Check className={cn("w-4 h-4", evaluation.pleurisy ? "opacity-100" : "opacity-20")} />
+            Pleurisia CV
+          </button>
+        </div>
+
+        {/* Next/Clear */}
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={handleClear}
+            className="w-14 h-12 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center shrink-0 border border-slate-700"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleNext}
+            className={cn(
+              "flex-1 h-12 rounded-lg font-bold uppercase tracking-wider flex items-center justify-center transition-colors shadow-lg text-sm",
+              isLast 
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(5,150,105,0.3)]" 
+                : "bg-sky-600 hover:bg-sky-500 text-white shadow-[0_0_15px_rgba(2,132,199,0.3)]"
+            )}
+          >
+            {isLast ? "FINALIZAR COLETA" : "PRÓXIMO ANIMAL"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -20,5 +20,4 @@ export interface AnimalEvaluation {
   leftCaudal: number;
   scarring: boolean;
   pleurisy: boolean;
-  spes: number;
 }

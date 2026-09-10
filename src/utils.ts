@@ -60,29 +60,17 @@ export function calculateAnimalStats(evaluation: Partial<AnimalEvaluation>) {
     ippScore += IPP_WEIGHTS[lobe][score as 0|1|2|3|4] || 0;
   }
 
-  const spes = evaluation.spes || 0;
-  // APPI (APP Index) only considers SPES scores of 2, 3, and 4.
-  const appi = spes >= 2 ? spes : 0;
-
   return {
     totalScore,
     areaAffected,
     areaAffectedPiffer,
-    ippScore,
-    spes,
-    appi
+    ippScore
   };
 }
 
 export function getEPIndexClassification(epIndex: number) {
   if (epIndex <= 1.49) return 'Leve';
   if (epIndex <= 2.4) return 'Intermediário';
-  return 'Grave';
-}
-
-export function getAPIndexClassification(apIndex: number) {
-  if (apIndex < 0.3) return 'Leve';
-  if (apIndex <= 0.6) return 'Intermediário';
   return 'Grave';
 }
 

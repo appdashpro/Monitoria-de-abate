@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { db } from '../db';
-import { calculateAnimalStats, getEPIndexClassification, getAPIndexClassification, getClassificationColor, getIPCategory } from '../utils';
+import { calculateAnimalStats, getEPIndexClassification, getClassificationColor, getIPCategory } from '../utils';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend
 } from 'recharts';
@@ -14,7 +14,7 @@ interface BatchSummary {
   prevPneumonia: number;
   prevScar: number;
   prevPleurisy: number;
-  avgSpes: number;
+  
 }
 
 export function DashboardTab() {
@@ -34,12 +34,12 @@ export function DashboardTab() {
       let pneumoniaCount = 0;
       let scarCount = 0;
       let pleurisyCount = 0;
-      let sumSpes = 0;
+      
       
       evaluations.forEach(ev => {
         const stats = calculateAnimalStats(ev);
         sumScore += stats.totalScore;
-        sumSpes += stats.spes;
+        
         const category = getIPCategory(stats.areaAffectedPiffer);
         if (category > 0) pneumoniaCount++;
         if (ev.scarring) scarCount++;
@@ -48,7 +48,7 @@ export function DashboardTab() {
 
       const totalEvaluated = evaluations.length;
       const avgScore = totalEvaluated ? sumScore / totalEvaluated : 0;
-      const avgSpes = totalEvaluated ? sumSpes / totalEvaluated : 0;
+      
       const prevPneumonia = totalEvaluated ? (pneumoniaCount / totalEvaluated) * 100 : 0;
       const prevScar = totalEvaluated ? (scarCount / totalEvaluated) * 100 : 0;
       const prevPleurisy = totalEvaluated ? (pleurisyCount / totalEvaluated) * 100 : 0;
@@ -61,7 +61,7 @@ export function DashboardTab() {
         prevPneumonia: Number(prevPneumonia.toFixed(1)),
         prevScar: Number(prevScar.toFixed(1)),
         prevPleurisy: Number(prevPleurisy.toFixed(1)),
-        avgSpes: Number(avgSpes.toFixed(2))
+        
       });
     }
 
@@ -156,7 +156,7 @@ export function DashboardTab() {
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-lg">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
               <Activity className="w-4 h-4 text-purple-500" />
-              Índice SPES (Pleurisia Média)
+              Prevalência de Pleurisia (%)
             </h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -168,13 +168,7 @@ export function DashboardTab() {
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
                     cursor={{ fill: '#1e293b', opacity: 0.8 }}
                   />
-                  <Bar dataKey="avgSpes" name="SPES Médio" radius={[4, 4, 0, 0]}>
-                    {historyData.map((entry, index) => {
-                      const classif = getAPIndexClassification(entry.avgSpes);
-                      const color = classif === 'Leve' ? '#34d399' : classif === 'Intermediário' ? '#fbbf24' : '#f87171';
-                      return <Cell key={`cell-${index}`} fill={color} />;
-                    })}
-                  </Bar>
+                  <Bar dataKey="prevPleurisy" name="Pleurisia (%)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -11,7 +11,7 @@ interface FullBatchRecord {
   batch: Batch;
   totalEvaluated: number;
   avgScore: number;
-  avgSpes: number;
+  
   prevPneumonia: number;
   prevScar: number;
   prevPleurisy: number;
@@ -45,7 +45,7 @@ export function HistoryTab() {
       let pneumoniaCount = 0;
       let scarCount = 0;
       let pleurisyCount = 0;
-      let sumSpes = 0;
+      
       let sumAreaAffected = 0;
       
       evaluations.forEach(ev => {
@@ -55,7 +55,7 @@ export function HistoryTab() {
         if (category > 0) pneumoniaCount++;
         if (ev.scarring) scarCount++;
         if (ev.pleurisy) pleurisyCount++;
-        sumSpes += stats.spes;
+        
         sumAreaAffected += stats.areaAffectedPiffer;
       });
 
@@ -64,14 +64,14 @@ export function HistoryTab() {
       const prevPneumonia = totalEvaluated ? (pneumoniaCount / totalEvaluated) * 100 : 0;
       const prevScar = totalEvaluated ? (scarCount / totalEvaluated) * 100 : 0;
       const prevPleurisy = totalEvaluated ? (pleurisyCount / totalEvaluated) * 100 : 0;
-      const avgSpes = totalEvaluated ? sumSpes / totalEvaluated : 0;
+      
       const avgAreaAffected = totalEvaluated ? sumAreaAffected / totalEvaluated : 0;
 
       fullRecords.push({
         batch,
         totalEvaluated,
         avgScore,
-        avgSpes,
+        
         prevPneumonia,
         prevScar,
         prevPleurisy,
@@ -229,8 +229,7 @@ export function HistoryTab() {
                           <div className="text-sm font-black text-white mt-0.5">{record.avgScore.toFixed(2)}</div>
                         </div>
                         <div>
-                          <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">SPES</div>
-                          <div className="text-sm font-black text-white mt-0.5">{record.avgSpes.toFixed(2)}</div>
+                          
                         </div>
                         <div>
                           <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">PNEUMONIA</div>
