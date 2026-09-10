@@ -20,10 +20,7 @@ const fetchApi = async (url: string, options: RequestInit = {}) => {
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    const error = new Error(`API call failed: ${response.status} ${response.statusText} - ${errText}`);
-    (error as any).status = response.status;
-    throw error;
+    throw new Error(`API call failed: ${response.statusText}`);
   }
 
   return response.json();
@@ -68,15 +65,7 @@ export const db = {
          return batches; // Backend already orders by date desc
       }
     }),
-    toArray: async () => fetchApi('/api/batches'),
-    get: async (id: string) => {
-      try {
-        return await fetchApi(`/api/batches/${id}`);
-      } catch (e: any) {
-        if (e.status === 404) return null;
-        throw e;
-      }
-    }
+    toArray: async () => fetchApi('/api/batches')
   },
   evaluations: {
     add: async (evaluation: AnimalEvaluation) => {
@@ -92,24 +81,14 @@ export const db = {
       });
     },
     get: async (query: { batchId: string, animalIndex: number }) => {
-       try {
-         const evals = await fetchApi(`/api/evaluations/${query.batchId}`);
-         return evals.find((e: AnimalEvaluation) => e.animalIndex === query.animalIndex);
-       } catch (e: any) {
-         if (e.status === 404) return undefined;
-         throw e;
-       }
+       const evals = await fetchApi(`/api/evaluations/${query.batchId}`);
+       return evals.find((e: AnimalEvaluation) => e.animalIndex === query.animalIndex);
     },
     where: (field: string) => ({
       equals: (value: string) => ({
         toArray: async () => {
            if (field === 'batchId') {
-              try {
-                return await fetchApi(`/api/evaluations/${value}`);
-              } catch (e: any) {
-                if (e.status === 404) return [];
-                throw e;
-              }
+              return fetchApi(`/api/evaluations/${value}`);
            }
            return [];
         },

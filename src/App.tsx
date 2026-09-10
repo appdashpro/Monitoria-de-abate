@@ -13,24 +13,10 @@ import { ScienceTab } from './components/ScienceTab';
 import { Activity, ClipboardList, Settings, List, LayoutDashboard, BookOpen, LogOut } from 'lucide-react';
 import { cn } from './utils';
 import { useAuth } from './components/AuthContext';
-import { db } from './db';
-import { useEffect } from 'react';
 
 export default function App() {
-  const { activeTab, setActiveTab, currentBatch, setCurrentBatch } = useAppStore();
+  const { activeTab, setActiveTab, currentBatch } = useAppStore();
   const { user, loading, signIn, logout } = useAuth();
-  
-  useEffect(() => {
-    if (user && currentBatch) {
-      db.batches.get(currentBatch.id).then(batch => {
-        if (!batch) {
-          console.warn("Current batch not found in backend, clearing...");
-          setCurrentBatch(null);
-          setActiveTab('setup');
-        }
-      }).catch(console.error);
-    }
-  }, [user, currentBatch, setCurrentBatch, setActiveTab]);
 
   const tabs = [
     { id: 'setup', label: 'Setup', icon: Settings, disabled: false },

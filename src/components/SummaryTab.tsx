@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store';
 import { db } from '../db';
-import { config } from '../lib/firebase';
 import { AnimalEvaluation } from '../types';
 import { calculateAnimalStats, LOBE_WEIGHTS, getEPIndexClassification, getAPIndexClassification, getIPCategory, getIPInterpretation, getClassificationColor, cn } from '../utils';
-import { Download, RotateCcw, ClipboardList, Printer, Share2, Check, Info, X, Cloud } from 'lucide-react';
-
-declare const google: any;
+import { Download, RotateCcw, ClipboardList, Printer, Share2, Check, Info, X, Sparkles } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -17,7 +14,8 @@ export function SummaryTab() {
   const [evaluations, setEvaluations] = useState<AnimalEvaluation[]>([]);
   const [copied, setCopied] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState<string | null>(null);
-  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const METRICS_INFO = {
     ip: {
@@ -146,104 +144,50 @@ export function SummaryTab() {
   const lossGramsPerDay = (Number(avgAreaAffectedPiffer) * 3.74).toFixed(1);
   const lossFcrPercent = (Number(avgAreaAffectedPiffer) * 0.45).toFixed(2);
 
-  const handleBackupToSheets = () => {
+  const handleAnalyze = async () => {
     if (!currentBatch || evaluations.length === 0) return;
     
-    setIsBackingUp(true);
-    
+    setIsAnalyzing(true);
+    setAiAnalysis(null);
     try {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: config.oAuthClientId,
-        scope: 'https://www.googleapis.com/auth/spreadsheets',
-        callback: async (response: any) => {
-          if (response.error) {
-            console.error(response.error);
-            setIsBackingUp(false);
-            alert('Erro na autenticação com o Google.');
-            return;
-          }
-          
-          try {
-            let spreadsheetId = localStorage.getItem('backup_spreadsheet_id');
-            
-            if (!spreadsheetId) {
-              const createResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${response.access_token}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  properties: { title: 'Monitoria Abate - Backup Geral' },
-                  sheets: [{ properties: { title: 'Lotes' } }, { properties: { title: 'Avaliações' } }]
-                })
-              });
-              const sheetData = await createResponse.json();
-              spreadsheetId = sheetData.spreadsheetId;
-              if (spreadsheetId) {
-                 localStorage.setItem('backup_spreadsheet_id', spreadsheetId);
-                 
-                 // Add headers to new sheets
-                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Lotes!A1:Z1:append?valueInputOption=USER_ENTERED`, {
-                   method: 'POST',
-                   headers: { 'Authorization': `Bearer ${response.access_token}`, 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ values: [['Data', 'Granja', 'Lote', 'Frigorífico', 'Total Animais', 'IP', 'Área Afetada %', 'MADEC', 'SPES', 'APPI', 'Prev. Pneumonia', 'Prev. Cicatrizes', 'Prev. Pleurisia', 'Perda GPD (g/dia)', 'Piora CA (%)']] })
-                 });
-                 
-                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Avaliações!A1:Z1:append?valueInputOption=USER_ENTERED`, {
-                   method: 'POST',
-                   headers: { 'Authorization': `Bearer ${response.access_token}`, 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ values: [['Lote', 'Data', 'Granja', 'ID Animal', 'Cranial Dir', 'Medio Dir', 'Caudal Dir', 'Acessorio', 'Cranial Esq', 'Medio Esq', 'Caudal Esq', 'Cicatriz', 'Pleurisia', 'Score Total', 'Area Afetada Piffer', 'Categoria IP', 'SPES']] })
-                 });
-              }
-            }
-
-            if (!spreadsheetId) throw new Error("Could not create/find spreadsheet");
-
-            // 1. Append Batch Summary
-            const batchRow = [
-              new Date(currentBatch.date).toLocaleDateString('pt-BR'), currentBatch.farm, currentBatch.batchId, currentBatch.abattoir, 
-              currentBatch.totalAnimals, avgIp, avgAreaAffectedPiffer, avgScore, avgSpes, avgAppi, 
-              prevPneumonia, prevScar, prevPleurisy, lossGramsPerDay, lossFcrPercent
-            ];
-            await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Lotes!A1:Z1:append?valueInputOption=USER_ENTERED`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${response.access_token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ values: [batchRow] })
-            });
-
-            // 2. Append Raw Evaluations
-            const evalsRows = evaluations.map(ev => {
-              const stats = calculateAnimalStats(ev);
-              return [
-                currentBatch.batchId, new Date(currentBatch.date).toLocaleDateString('pt-BR'), currentBatch.farm, ev.animalIndex,
-                ev.rightCranial, ev.rightMiddle, ev.rightCaudal, ev.accessory, ev.leftCranial, ev.leftMiddle, ev.leftCaudal,
-                ev.scarring ? 'Sim' : 'Não', ev.pleurisy ? 'Sim' : 'Não', stats.totalScore, stats.areaAffectedPiffer.toFixed(2),
-                getIPCategory(stats.areaAffectedPiffer), stats.spes
-              ];
-            });
-
-            await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Avaliações!A1:Z1:append?valueInputOption=USER_ENTERED`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${response.access_token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ values: evalsRows })
-            });
-
-            alert(`Backup salvo no Google Sheets com sucesso!
-O link da planilha foi enviado para o seu Drive.`);
-          } catch (error) {
-            console.error(error);
-            alert('Falha ao gravar no Google Sheets.');
-          } finally {
-            setIsBackingUp(false);
-          }
-        }
+      const response = await fetch('/api/analyze-batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          batchData: {
+            farm: currentBatch.farm,
+            batchId: currentBatch.batchId,
+            abattoir: currentBatch.abattoir,
+            totalAnimals: currentBatch.totalAnimals,
+            date: currentBatch.date,
+            avgIp,
+            avgAreaAffected: avgAreaAffectedPiffer,
+            avgScore,
+            avgSpes,
+            avgAppi,
+            prevPneumonia,
+            prevScar,
+            prevPleurisy,
+            lossGramsPerDay,
+            lossFcrPercent
+          },
+          evaluations: evaluations
+        })
       });
-      client.requestAccessToken();
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao inicializar Google Auth');
-      setIsBackingUp(false);
+      
+      if (!response.ok) {
+        throw new Error('Falha ao analisar os dados');
+      }
+      
+      const data = await response.json();
+      setAiAnalysis(data.analysis);
+    } catch (error) {
+      console.error(error);
+      setAiAnalysis('Não foi possível gerar a análise no momento. Verifique a chave de API ou tente novamente mais tarde.');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -596,45 +540,41 @@ Gerado via *Monitoria de Abate PWA*`;
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-950 to-slate-900 border border-emerald-900/50 rounded-2xl p-6 shadow-lg print:hidden">
-          <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+        <div className="bg-gradient-to-br from-indigo-950 to-slate-900 border border-indigo-900/50 rounded-2xl p-6 shadow-lg print:hidden">
+          <div className="flex justify-between items-start md:items-center mb-4 flex-col md:flex-row gap-4">
             <div>
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                <Cloud className="w-4 h-4" />
-                Backup (Google Sheets)
+              <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Análise Inteligente (IA)
               </h3>
-              <p className="text-sm text-slate-400 mt-1">Armazene o lote e os dados brutos de avaliações na nuvem.</p>
+              <p className="text-sm text-slate-400 mt-1">Gere insights e planos de ação baseados nos dados do lote.</p>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
-            {localStorage.getItem('backup_spreadsheet_id') && (
-              <a 
-                href={`https://docs.google.com/spreadsheets/d/${localStorage.getItem('backup_spreadsheet_id')}/edit`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors flex-1 md:flex-none border border-emerald-900/50"
-              >
-                ABRIR PLANILHA
-              </a>
-            )}
             <button
-              onClick={handleBackupToSheets}
-              disabled={isBackingUp}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors shrink-0"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors shrink-0"
             >
-              {isBackingUp ? (
+              {isAnalyzing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  SALVANDO...
+                  ANALISANDO...
                 </>
               ) : (
                 <>
-                  <Cloud className="w-4 h-4" />
-                  FAZER BACKUP
+                  <Sparkles className="w-4 h-4" />
+                  GERAR PLANO DE AÇÃO
                 </>
               )}
             </button>
-            </div>
           </div>
+          
+          {aiAnalysis && (
+            <div className="mt-6 bg-slate-950/50 border border-indigo-900/30 rounded-xl p-5 text-sm text-slate-300">
+              <div className="markdown-body text-slate-300 prose prose-invert prose-p:leading-relaxed prose-headings:text-indigo-300 prose-a:text-indigo-400 max-w-none prose-sm">
+                <Markdown>{aiAnalysis}</Markdown>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

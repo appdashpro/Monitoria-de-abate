@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import { GoogleGenAI } from "@google/genai";
 import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";
 import { db } from "./src/db/index.ts";
 import { batches, evaluations, users } from "./src/db/schema.ts";
@@ -35,7 +36,7 @@ async function startServer() {
       res.json(allBatches);
     } catch (error: any) {
       console.error("Error fetching batches:", error);
-      res.status(500).json({ error: "Failed to fetch batches", details: error.toString() });
+      res.status(500).json({ error: "Failed to fetch batches" });
     }
   });
 
@@ -72,7 +73,7 @@ async function startServer() {
       const user = await getOrCreateUser(req.user!.uid, req.user!.email || "");
       const batchResult = await db.select().from(batches).where(eq(batches.id, req.params.id));
       if (batchResult.length === 0 || batchResult[0].userId !== user.id) {
-        console.log("404 Batch not found for id:", req.params.id); console.log("404 Batch not found for batchId:", req.params.batchId, "user:", user.id); return res.status(404).json({ error: "Batch not found" });
+        return res.status(404).json({ error: "Batch not found" });
       }
       res.json(batchResult[0]);
     } catch (error: any) {
@@ -110,7 +111,7 @@ async function startServer() {
       res.json(allEvaluations);
     } catch (error: any) {
       console.error("Error fetching evaluations:", error);
-      res.status(500).json({ error: "Failed to fetch evaluations", details: error.toString() });
+      res.status(500).json({ error: "Failed to fetch evaluations" });
     }
   });
 
@@ -187,6 +188,61 @@ async function startServer() {
   });
 
 
+  app.post("/api/analyze-batch", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { batchData, evals } = req.body;
+      
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY environment variable is required" });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      const prompt = `Analise os seguintes dados de uma avaliação de abate de suínos (monitoria de pneumonia e lesões pleurais) e forneça sugestões de ações corretivas e preventivas.
+
+      Dados do Lote:
+      - Granja: ${batchData.farm}
+      - Lote: ${batchData.batchId}
+      - Frigorífico: ${batchData.abattoir}
+      - Total Avaliados: ${evals.length} / ${batchData.totalAnimals}
+      - Data: ${new Date(batchData.date).toLocaleDateString('pt-BR')}
+
+      Métricas:
+      - Índice de Pneumonia (IP): ${batchData.avgIp}
+      - Área Afetada Média: ${batchData.avgAreaAffected}%
+      - Índice Médio (MADEC): ${batchData.avgScore}
+      - SPES Médio: ${batchData.avgSpes}
+      - APP Index (APPI): ${batchData.avgAppi}
+      - Prevalência de Pneumonia: ${batchData.prevPneumonia}%
+      - Prevalência de Cicatrizes: ${batchData.prevScar}%
+      - Prevalência de Pleurisia: ${batchData.prevPleurisy}%
+
+      Impacto Econômico:
+      - Perda de Ganho de Peso Diário (GPD): -${batchData.lossGramsPerDay} g/dia
+      - Piora na Conversão Alimentar (CA): +${batchData.lossFcrPercent}%
+
+      Por favor, retorne um texto formatado em Markdown com:
+      1. Uma breve interpretação geral do quadro respiratório e seu impacto econômico no lote.
+      2. 3 a 5 pontos com possíveis causas para os índices observados (baseados nas prevalências de pneumonia, pleurisia e cicatrizes).
+      3. 3 a 5 ações práticas (corretivas/preventivas) focadas em manejo, vacinação, medicação ou ambiência para a granja ${batchData.farm}.
+
+      Responda em português (pt-BR) de forma profissional, voltado para veterinários e produtores de suínos.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      res.json({ analysis: response.text });
+
+    } catch (error: any) {
+      console.error("Erro na análise do Gemini:", error);
+      res.status(500).json({ error: error.message || "Erro interno no servidor" });
+    }
+  });
+
+  // KILL SWITCH for Service Worker
   app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
