@@ -1,0 +1,6 @@
+{
+  "name": "Monitoria de Abate",
+  "description": "Aplicativo de inspeção de pulmões de suínos com suporte offline (PWA).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

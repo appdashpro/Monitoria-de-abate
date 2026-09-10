@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monitoria de Abate</title>
+    <style>
+      #fallback-error {
+        display: none;
+        padding: 40px 20px;
+        color: #f8fafc;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #020617;
+        height: 100vh;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      #fallback-error h2 { color: #ef4444; }
+      #fallback-error p {
+        color: #94a3b8;
+        max-width: 600px;
+        margin: 16px auto;
+        line-height: 1.6;
+        word-break: break-word;
+      }
+      .code-box {
+        background: #0f172a;
+        padding: 12px;
+        border-radius: 8px;
+        font-family: monospace;
+        color: #38bdf8;
+        text-align: left;
+        display: inline-block;
+        margin-top: 10px;
+      }
+    </style>
+    <script>
+      // Automatically unregister any lingering Service Workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        }).catch(function(err) {
+          console.error('SW unregister error:', err);
+        });
+      }
+
+      window.addEventListener('error', function(e) {
+        var el = document.getElementById('fallback-error');
+        var root = document.getElementById('root');
+        var msg = document.getElementById('error-msg');
+        if (el) {
+          el.style.display = 'block';
+          
+          // Check if this is the raw source loading error
+          if (e.message && e.message.includes('Unexpected token')) {
+            msg.innerHTML = `
+              <strong>O código fonte não foi compilado.</strong><br/><br/>
+              O GitHub Pages está tentando ler arquivos TypeScript (.tsx) diretamente, mas os navegadores não suportam isso. Este é um projeto React + Vite.<br/><br/>
+              <strong>Solução Automática:</strong><br/>
+              Foi adicionado um arquivo de configuração do <b>GitHub Actions</b> (<code>.github/workflows/deploy.yml</code>) no seu projeto.<br/>
+              Vá nas configurações do seu repositório no GitHub:<br/>
+              <em>Settings > Pages > Source</em> e mude para <strong>GitHub Actions</strong>.<br/>
+              O GitHub irá compilar e publicar o site automaticamente!
+            `;
+          } else {
+            msg.textContent = e.message || 'Unknown error: ' + (e.error ? e.error.stack : '');
+          }
+        }
+        if (root) root.style.display = 'none';
+      }, true);
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+  <body>
+    <div id="fallback-error">
+      <h2>⚠️ Erro ao carregar o aplicativo no navegador</h2>
+      <p id="error-msg">Os arquivos do aplicativo não puderam ser carregados.</p>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
