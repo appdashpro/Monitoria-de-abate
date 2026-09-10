@@ -11,6 +11,12 @@ export class MonitoriaDB extends Dexie {
       batches: 'id, userId, date',
       evaluations: 'id, batchId, [batchId+animalIndex]'
     });
+    this.version(2).stores({
+      batches: 'id, date',
+      evaluations: 'id, batchId, [batchId+animalIndex]'
+    }).upgrade(tx => {
+      // no data migration needed
+    });
   }
 }
 
