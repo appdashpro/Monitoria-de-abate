@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../store';
 import { db } from '../db';
+import { config } from '../lib/firebase';
 import { AnimalEvaluation } from '../types';
 import { calculateAnimalStats, LOBE_WEIGHTS, getEPIndexClassification, getAPIndexClassification, getIPCategory, getIPInterpretation, getClassificationColor, cn } from '../utils';
 import { Download, RotateCcw, ClipboardList, Printer, Share2, Check, Info, X, Cloud } from 'lucide-react';
@@ -152,7 +153,7 @@ export function SummaryTab() {
     
     try {
       const client = google.accounts.oauth2.initTokenClient({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        client_id: config.oAuthClientId,
         scope: 'https://www.googleapis.com/auth/spreadsheets',
         callback: async (response: any) => {
           if (response.error) {
@@ -604,6 +605,17 @@ Gerado via *Monitoria de Abate PWA*`;
               </h3>
               <p className="text-sm text-slate-400 mt-1">Armazene o lote e os dados brutos de avaliações na nuvem.</p>
             </div>
+            <div className="flex gap-2 w-full md:w-auto">
+            {localStorage.getItem('backup_spreadsheet_id') && (
+              <a 
+                href={`https://docs.google.com/spreadsheets/d/${localStorage.getItem('backup_spreadsheet_id')}/edit`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors flex-1 md:flex-none border border-emerald-900/50"
+              >
+                ABRIR PLANILHA
+              </a>
+            )}
             <button
               onClick={handleBackupToSheets}
               disabled={isBackingUp}
@@ -621,6 +633,7 @@ Gerado via *Monitoria de Abate PWA*`;
                 </>
               )}
             </button>
+            </div>
           </div>
         </div>
       </div>
